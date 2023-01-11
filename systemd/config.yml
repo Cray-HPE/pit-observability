@@ -2,7 +2,9 @@ global:
     config_version: 3
 input:
     type: file
-    path: /grok_exporter/example/conman/console.*
+    paths:
+    - /grok_exporter/example/conman/console.*
+    - /opt/cray/tests/install/logs/grok_exporter/*
     readall: true
     fail_on_missing_logfile: false
 grok_patterns:
@@ -17,6 +19,16 @@ grok_patterns:
   - 'ERROR_CODE -[0-9]*'
   - 'ADDRESS [0-9]*'
   - 'ERROR_MSG [a-zA-Z]* (reset|enable|disable)'
+  - 'TIMESTAMP [0-9]{8}_[0-9]{6}.[0-9]{6}'
+  - 'PRODUCT CSM|SMA|SMF'
+  - 'SCRIPT [aA-zZ._].*'
+  - 'DESC [aA-zZ].*'
+  - 'NUM [0-9].*'
+  - 'TIME [0-9].[0-9]{9}'
+  - 'NODE ncn-(s|w|m)[0-9]{3}'
+  - 'CODE 0|1'
+  - 'RESULT PASS|FAIL|SKIP|UNKNOWN'
+  - 'SUITE [aA-zZ-].*'
 metrics:
     - type: counter
       name: cloud_init_authentication_failed_count
@@ -250,5 +262,21 @@ metrics:
       match: 'stage.1.2.3.4.4'
       labels:
           logfile: '{{base .logfile}}'
+    - type: gauge
+      name: goss_tests
+      help: GOSS TESTS
+      match: '{"log_timestamp": "%{TIMESTAMP:tstmp}", "Product": "%{PRODUCT:prod}", "log_script": "%{SCRIPT:scrip}", "log_message": "Test result", "Description": "%{DESC:desc}", "Execution Time \(raw\)": %{NUM:raw}, "Execution Time \(seconds\)": %{NUM:time}, "Node": "%{NODE:node}", "Result Code": %{CODE:code}, "Result String": "%{RESULT:res}", "Source": ".*\/%{SUITE:suite}", "Test Name": "%{DESC:name}", "Test Summary": "%{DESC:sum}"}'
+      value: '{{.code}}'
+      labels:
+          Timestamp: '{{.tstmp}}'
+          Product: '{{.prod}}'
+          Script: '{{.scrip}}'
+          Description: '{{.desc}}'
+          Execution_raw: '{{.raw}}'
+          Execution_time: '{{.time}}'
+          Node: '{{.node}}'
+          Result: '{{.res}}'
+          Suite: '{{.suite}}'
+          Test_summary: '{{.sum}}'
 server:
     port: 9144
